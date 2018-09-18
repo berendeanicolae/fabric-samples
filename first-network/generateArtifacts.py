@@ -88,80 +88,80 @@ def genOrdererService(networkName, domainName, loggingLevel):
 
 def genPeerService(networkName, domainName, orgIndex, peerIndex, loggingLevel):
     config = {
-		"peer{}_org{}".format(peerIndex, orgIndex): {
-			"hostname": "peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
-			"image": "",
-			"environment": [
-        		"CORE_PEER_ID=peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
-        		"CORE_PEER_ADDRESS=peer{}.org{}.{}:7051".format(peerIndex, orgIndex, domainName),
-        		"CORE_PEER_GOSSIP_BOOTSTRAP=peer{}.org{}.{}:7051".format(0 if peerIndex!=0 else 1, orgIndex, domainName),
-        		"CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer{}.org{}.:7051".format(peerIndex, orgIndex, domainName),
-        		"CORE_PEER_LOCALMSPID=Org{}MSP".format(orgIndex),
-        		"CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-        		"CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=hyperledger-ov",
-        		"CORE_LOGGING_LEVEL={}".format(loggingLevel),
-        		"CORE_PEER_TLS_ENABLED=true",
-        		"CORE_PEER_GOSSIP_USELEADERELECTION=true",
-        		"CORE_PEER_GOSSIP_ORGLEADER=false",
-        		"CORE_PEER_PROFILE_ENABLED=true",
-        		"CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
-        		"CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
-        		"CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
-			],
-			"working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer",
-			"command": "peer node start",
-			"volumes": [
-				"/var/run/:/host/var/run/",
-				"/shared/crypto-config/peerOrganizations/org{org}.{domain}/peers/peer{peer}.org{org}.{domain}/msp:/etc/hyperledger/fabric/msp".format(peer=peerIndex, org=orgIndex, domain=domainName),
-				"/shared/crypto-config/peerOrganizations/org{org}.{domain}/peers/peer{peer}.org{org}.{domain}/tls:/etc/hyperledger/fabric/tls".format(peer=peerIndex, org=orgIndex, domain=domainName)
-			],
-			"networks": {
-				networkName: {
-					"aliases": [
-						"peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
-					],
-				}
-			},
-		},
+        "peer{}_org{}".format(peerIndex, orgIndex): {
+            "hostname": "peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
+            "image": "",
+            "environment": [
+                "CORE_PEER_ID=peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
+                "CORE_PEER_ADDRESS=peer{}.org{}.{}:7051".format(peerIndex, orgIndex, domainName),
+                "CORE_PEER_GOSSIP_BOOTSTRAP=peer{}.org{}.{}:7051".format(0 if peerIndex!=0 else 1, orgIndex, domainName),
+                "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer{}.org{}.:7051".format(peerIndex, orgIndex, domainName),
+                "CORE_PEER_LOCALMSPID=Org{}MSP".format(orgIndex),
+                "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=hyperledger-ov",
+                "CORE_LOGGING_LEVEL={}".format(loggingLevel),
+                "CORE_PEER_TLS_ENABLED=true",
+                "CORE_PEER_GOSSIP_USELEADERELECTION=true",
+                "CORE_PEER_GOSSIP_ORGLEADER=false",
+                "CORE_PEER_PROFILE_ENABLED=true",
+                "CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt",
+                "CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key",
+                "CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt",
+            ],
+            "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer",
+            "command": "peer node start",
+            "volumes": [
+                "/var/run/:/host/var/run/",
+                "/shared/crypto-config/peerOrganizations/org{org}.{domain}/peers/peer{peer}.org{org}.{domain}/msp:/etc/hyperledger/fabric/msp".format(peer=peerIndex, org=orgIndex, domain=domainName),
+                "/shared/crypto-config/peerOrganizations/org{org}.{domain}/peers/peer{peer}.org{org}.{domain}/tls:/etc/hyperledger/fabric/tls".format(peer=peerIndex, org=orgIndex, domain=domainName)
+            ],
+            "networks": {
+                networkName: {
+                    "aliases": [
+                        "peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
+                    ],
+                }
+            },
+        },
     }
 
 def genCliService(networkName, domainName, loggingLevel):
-	config = {
-		"cli" : {
-			"image": "hyperledger/fabric-tools:latest",
-			"environment": [
-      			"GOPATH=/opt/gopath",
-      			"CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
-      			"CORE_LOGGING_LEVEL={}".format(loggingLevel),
-      			"CORE_PEER_ID=cli",
-      			"CORE_PEER_ADDRESS=peer0.org1.example.com:7051",
-      			"CORE_PEER_LOCALMSPID=Org1MSP",
-      			"CORE_PEER_TLS_ENABLED=true",
-      			"CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.crt",
-      			"CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.key",
-      			"CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt",
-      			"CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp",
-			],
-			"working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer",
-			"command": "sleep 1d",
-			"volumes": [
-        		"/var/run/:/host/var/run/",
-        		"/shared/chaincode/:/opt/gopath/src/github.com/chaincode",
-        		"/shared/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/",
-        		"/shared/scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/",
-        		"/shared/channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts",
-			],
-			"networks": {
-				networkName: {
-					"aliases": [
-						"cli",
-					],
-				}
-			},
-		}
-	}
+    config = {
+        "cli" : {
+            "image": "hyperledger/fabric-tools:latest",
+            "environment": [
+                  "GOPATH=/opt/gopath",
+                  "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
+                  "CORE_LOGGING_LEVEL={}".format(loggingLevel),
+                  "CORE_PEER_ID=cli",
+                  "CORE_PEER_ADDRESS=peer0.org1.example.com:7051",
+                  "CORE_PEER_LOCALMSPID=Org1MSP",
+                  "CORE_PEER_TLS_ENABLED=true",
+                  "CORE_PEER_TLS_CERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.crt",
+                  "CORE_PEER_TLS_KEY_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/server.key",
+                  "CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt",
+                  "CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp",
+            ],
+            "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer",
+            "command": "sleep 1d",
+            "volumes": [
+                "/var/run/:/host/var/run/",
+                "/shared/chaincode/:/opt/gopath/src/github.com/chaincode",
+                "/shared/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/",
+                "/shared/scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/",
+                "/shared/channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts",
+            ],
+            "networks": {
+                networkName: {
+                    "aliases": [
+                        "cli",
+                    ],
+                }
+            },
+        }
+    }
 
-	return config
+    return config
 
 def generateDocker(networkName, domainName, orgCount, peerCount, loggingLevel):
     config = {
