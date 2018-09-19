@@ -50,11 +50,11 @@ def genCrypto(domainName, orgCount, peerCount):
     fHandle.write(yaml.dump(config, default_flow_style=False))
     fHandle.close()
 
-def genOrdererService(networkName, domainName, loggingLevel):
+def genOrdererService(imageName, networkName, domainName, loggingLevel):
     config = {
         "orderer": {
             "hostname": "orderer.{}".format(domainName),
-            "image": "",
+            "image": imageName,
             "environment": [
                 "ORDERER_GENERAL_LOGLEVEL={}".format(loggingLevel),
                 "ORDERER_GENERAL_LISTENADDRESS=0.0.0.0",
@@ -85,11 +85,11 @@ def genOrdererService(networkName, domainName, loggingLevel):
     }
     return config
 
-def genPeerService(networkName, domainName, orgIndex, peerIndex, loggingLevel):
+def genPeerService(imageName, networkName, domainName, orgIndex, peerIndex, loggingLevel):
     config = {
         "peer{}_org{}".format(peerIndex, orgIndex): {
             "hostname": "peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
-            "image": "",
+            "image": imageName,
             "environment": [
                 "CORE_PEER_ID=peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
                 "CORE_PEER_ADDRESS=peer{}.org{}.{}:7051".format(peerIndex, orgIndex, domainName),
@@ -125,10 +125,10 @@ def genPeerService(networkName, domainName, orgIndex, peerIndex, loggingLevel):
     }
     return config
 
-def genCliService(networkName, domainName, loggingLevel):
+def genCliService(imageName, networkName, domainName, loggingLevel):
     config = {
         "cli" : {
-            "image": "hyperledger/fabric-tools:latest",
+            "image": imageName,
             "environment": [
                   "GOPATH=/opt/gopath",
                   "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
@@ -162,7 +162,7 @@ def genCliService(networkName, domainName, loggingLevel):
     }
     return config
 
-def generateDocker(networkName, domainName, orgCount, peerCount, loggingLevel):
+def generateDocker(repoOwner, networkName, domainName, orgCount, peerCount, loggingLevel):
     config = {
         "version": '3',
         "networks": {
@@ -173,11 +173,11 @@ def generateDocker(networkName, domainName, orgCount, peerCount, loggingLevel):
         "services": []
     }
 
-    config["services"].append(genOrdererService(networkName, domainName, loggingLevel))
+    config["services"].append("{}/fabric-orderer:latest".format(repoOwner), genOrdererService(networkName, domainName, loggingLevel))
     for org in range(orgCount):
         for peer in range(peerCount[org]):
-            config["services"].append(genPeerService(networkName, domainName, org+1, peer, loggingLevel))
-    config["services"].append(genCliService(networkName, domainName, loggingLevel))
+            config["services"].append(genPeerService("{}/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
+    config["services"].append(genCliService("{}/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
 
     fHandle = open("docker-compose-cli.yaml", "w")
     fHandle.write(yaml.dump(config, default_flow_style=False))
@@ -190,7 +190,7 @@ def generate():
     p.communicate(input=b"y")
     p.wait()
 
-    generateDocker("hyperledger-ov", "example.com", 2, [2, 2], "INFO")
+    generateDocker("hyperledger", "hyperledger-ov", "example.com", 2, [2, 2], "INFO")
 
 def main():
     parser = argparse.ArgumentParser(os.path.basename(__file__))
