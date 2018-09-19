@@ -83,7 +83,6 @@ def genOrdererService(networkName, domainName, loggingLevel):
             }
         }
     }
-
     return config
 
 def genPeerService(networkName, domainName, orgIndex, peerIndex, loggingLevel):
@@ -95,7 +94,7 @@ def genPeerService(networkName, domainName, orgIndex, peerIndex, loggingLevel):
                 "CORE_PEER_ID=peer{}.org{}.{}".format(peerIndex, orgIndex, domainName),
                 "CORE_PEER_ADDRESS=peer{}.org{}.{}:7051".format(peerIndex, orgIndex, domainName),
                 "CORE_PEER_GOSSIP_BOOTSTRAP=peer{}.org{}.{}:7051".format(0 if peerIndex!=0 else 1, orgIndex, domainName),
-                "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer{}.org{}.:7051".format(peerIndex, orgIndex, domainName),
+                "CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer{}.org{}.{}:7051".format(peerIndex, orgIndex, domainName),
                 "CORE_PEER_LOCALMSPID=Org{}MSP".format(orgIndex),
                 "CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock",
                 "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=hyperledger-ov",
@@ -124,6 +123,7 @@ def genPeerService(networkName, domainName, orgIndex, peerIndex, loggingLevel):
             },
         },
     }
+    return config
 
 def genCliService(networkName, domainName, loggingLevel):
     config = {
@@ -160,12 +160,11 @@ def genCliService(networkName, domainName, loggingLevel):
             },
         }
     }
-
     return config
 
 def generateDocker(networkName, domainName, orgCount, peerCount, loggingLevel):
     config = {
-        "version": 3,
+        "version": '3',
         "networks": {
             networkName: {
                 "external": True,
@@ -201,4 +200,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
