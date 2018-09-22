@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 import argparse
+import shutil
 import subprocess
 import yaml
 
@@ -192,11 +193,25 @@ def generate():
 
     generateDocker("hyperledger", "hyperledger-ov", "example.com", 2, [2, 2], "INFO")
 
+def copytree(src, dst):
+    if os.path.isdir(dst): shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+
+def deploy():
+    if os.path.isdir("/export"):
+        copytree("./scripts", "/export/scripts")
+        copytree("./crypto-config", "/export/crypto-config")
+        copytree("./channel-artifacts", "/export/channel-artifacts")
+        copytree("./../chaincode", "/export/chaincode")
+
+        subprocess.Popen(["chmod -R 777 /export"], shell=True).wait()
+
 def main():
     parser = argparse.ArgumentParser(os.path.basename(__file__))
     args = parser.parse_args()
 
     generate()
+    deploy()
 
 if __name__ == "__main__":
     main()
