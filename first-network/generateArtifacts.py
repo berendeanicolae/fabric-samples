@@ -174,7 +174,7 @@ def generateDocker(repoOwner, networkName, domainName, orgCount, peerCount, logg
         "services": []
     }
 
-    config["services"].append("{}/fabric-orderer:latest".format(repoOwner), genOrdererService(networkName, domainName, loggingLevel))
+    config["services"].append(genOrdererService("{}/fabric-orderer:latest".format(repoOwner), networkName, domainName, loggingLevel))
     for org in range(orgCount):
         for peer in range(peerCount[org]):
             config["services"].append(genPeerService("{}/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
