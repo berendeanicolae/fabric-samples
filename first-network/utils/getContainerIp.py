@@ -23,4 +23,4 @@ def getContainerIP(service):
 	return srvcIp.strip()
 
 
-getContainerIP(srvcName)
+print(getContainerIP(srvcName))
