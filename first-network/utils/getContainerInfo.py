@@ -3,12 +3,6 @@ import os
 import subprocess
 
 
-if len(sys.argv)!= 2:
-	print("Usage: {} <peer_name>".format(__file__))
-	raise SystemExit
-
-srvcName = sys.argv[1]
-
 def getContainerInfo(service):
 	# node ID
 	cmd = "docker service ps --format '{{{{.Node}}}} {{{{.DesiredState}}}}' --no-resolve {srvc}".format(srvc=service)
@@ -44,5 +38,10 @@ def getContainerInfo(service):
 	return srvcId, srvcIp, cntId, cntPid
 
 
-print(getContainerInfo(srvcName))
+if __name__ == "__main__":
+	if len(sys.argv)!= 2:
+		print("Usage: {} <peer_name>".format(__file__))
+		raise SystemExit
+
+	print(getContainerInfo(sys.argv[1]))
 
