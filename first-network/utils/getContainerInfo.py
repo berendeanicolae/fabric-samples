@@ -15,7 +15,7 @@ def getContainerInfo(service):
 	p = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE)
 	srvcId, _ = p.communicate()
 	srvcId = srvcId.split("\n", 1)[0]
-	if srvcId.split()[1]!="Running":
+	if srvcId.split()[1] != "Running":
 		return None
 	srvcId = srvcId.split()[0].strip()
 
@@ -30,6 +30,8 @@ def getContainerInfo(service):
 	p = subprocess.Popen([cmd], shell=True, stdout=subprocess.PIPE)
 	cnts, _ = p.communicate()
 	cnts = cnts.strip()
+	if len(cnts) == 0:
+		return None
 	cntId, _ = cnts.split()
 	cntId = cntId.strip()
 
