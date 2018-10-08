@@ -177,7 +177,7 @@ def generateDocker(repoOwner, networkName, domainName, orgCount, peerCount, logg
     config["services"].update(genOrdererService("{}/fabric-orderer:latest".format(repoOwner), networkName, domainName, loggingLevel))
     for org in range(orgCount):
         for peer in range(peerCount[org]):
-            config["services"].update(genPeerService("{}/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
+            config["services"].update(genPeerService("berendeanicolae/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
     config["services"].update(genCliService("{}/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
 
     fHandle = open("docker-compose-cli.yaml", "w")
