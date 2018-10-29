@@ -7,6 +7,8 @@ import yaml
 
 from collections import OrderedDict
 
+def genNetwork(domainName, orgCount):
+    pass
 
 def genOrdererConfig(domainName):
     config = []
@@ -147,7 +149,7 @@ def genCliService(imageName, networkName, domainName, loggingLevel):
         "command": "sleep 1d",
         "volumes": [
             "/var/run/:/host/var/run/",
-            "/shared/chaincode/:/opt/gopath/src/github.com/chaincode",
+            "/shared/chaincode/:/opt/gopath/src/github.com/hyperledger/fabric/examples/chaincode/go",
             "/shared/crypto-config:/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/",
             "/shared/scripts:/opt/gopath/src/github.com/hyperledger/fabric/peer/scripts/",
             "/shared/channel-artifacts:/opt/gopath/src/github.com/hyperledger/fabric/peer/channel-artifacts",
@@ -186,12 +188,16 @@ def generateDocker(repoOwner, networkName, domainName, orgCount, peerCount, logg
 
 
 def generate():
-    genCrypto("example.com", 2, [2, 2])
+    domainName = "example.com"
+    orgsCount = 3
+    peerCounts = [2, 2, 2]
+ 
+    genCrypto(domainName, orgsCount, peerCounts)
     p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
     p.communicate(input=b"y")
     p.wait()
 
-    generateDocker("hyperledger", "hyperledger-ov", "example.com", 2, [2, 2], "INFO")
+    generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
 
 def copytree(src, dst):
     if os.path.isdir(dst): shutil.rmtree(dst)
@@ -199,10 +205,10 @@ def copytree(src, dst):
 
 def deploy():
     if os.path.isdir("/export"):
-        copytree("./scripts", "/export/scripts")
+        copytree("./../high-throughput/scripts", "/export/scripts")
         copytree("./crypto-config", "/export/crypto-config")
         copytree("./channel-artifacts", "/export/channel-artifacts")
-        copytree("./../chaincode", "/export/chaincode")
+        copytree("./../high-throughput/chaincode", "/export/chaincode")
 
         subprocess.Popen(["chmod -R 777 /export"], shell=True).wait()
 
