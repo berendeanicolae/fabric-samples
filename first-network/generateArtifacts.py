@@ -239,70 +239,39 @@ def genNetworkOrderer(domainName):
 
     return config
 
-def genNetworkProfiles(domainName, orgsCount):
-    config = {}
+def setNetworkProfiles(config, domainName):
+    config["Profiles"] = {}
 
-    config["TwoOrgsOrdererGenesis"] = {
+    config["Profiles"]["TwoOrgsOrdererGenesis"] = {
         "Capabilities": {
             "V1_1": True,
         },
         "Orderer": {
-            "OrdererType": "solo",
-            "Addresses": ["orderer.{}".format(domainName)],
-            "BatchTimeout": "2s",
-            "BatchSize": {
-                "MaxMessageCount": 10,
-                "AbsoluteMaxBytes": "99 MB",
-                "PreferredMaxBytes": "512 KB",
-            },
-            "Kafka": {
-                "Brokers": ["127.0.0.1:9092"]
-            },
-            "Organizations": [{
-                    "Name": "OrdererOrg",
-                    "ID": "OrdererMSP",
-                    "MSPDir": "crypto-config/ordererOrganizations/example.com/msp"
-                }
-            ],
+            "OrdererType": config["Orderer"]["OrdererType"],
+            "Addresses": config["Orderer"]["Addresses"],
+            "BatchTimeout": config["Orderer"]["BatchTimeout"],
+            "BatchSize": config["Orderer"]["BatchSize"],
+            "Kafka": config["Orderer"]["Kafka"],
+            "Organizations": [org for org in config["Organizations"] if "Orderer" in org["ID"]],
             "Capabilities": {
                 "V1_1": True
             }
         },
         "Consortiums": {
             "SampleConsortium": {
-                "Organizations": [{
-                    "Name": "Org{}MSP".format(org+1),
-                    "ID": "Org{}MSP".format(org+1),
-                    "MSPDir": "crypto-config/peerOrganizations/org{}.{}/msp".format(org+1, domainName),
-                    "AnchorPeers": [{
-                            "Host": "peer0.org{}.{}".format(org+1, domainName),
-                            "Port": 7051,
-                        }
-                    ]
-                } for org in range(orgsCount)]
+                "Organizations": [org for org in config["Organizations"] if "Org" in org["ID"]]
             },
         },
     }
-    config["TwoOrgsChannel"] = {
+    config["Profiles"]["TwoOrgsChannel"] = {
         "Consortium": "SampleConsortium",
         "Application": {
-            "Organizations": [{
-                "Name": "Org{}MSP".format(org+1),
-                "ID": "Org{}MSP".format(org+1),
-                "MSPDir": "crypto-config/peerOrganizations/org{}.{}/msp".format(org+1, domainName),
-                "AnchorPeers": [{
-                        "Host": "peer0.org{}.{}".format(org+1, domainName),
-                        "Port": 7051,
-                    },
-                ],
-            } for org in range(orgsCount)],
+            "Organizations": [org for org in config["Organizations"] if "Org" in org["ID"]],
             "Capabilities": {
                 "V1_2": True,
             }
         }
     }
-
-    return config
 
 def genNetwork(domainName, orgsCount):
     config = {}
@@ -311,7 +280,7 @@ def genNetwork(domainName, orgsCount):
     config["Capabilities"] = genNetworkCapabilities()
     config["Application"] = genNetworkApplication()
     config["Orderer"] = genNetworkOrderer(domainName)
-    config["Profiles"] = genNetworkProfiles(domainName, orgsCount)
+    setNetworkProfiles(config, domainName)
 
     fHandle = open("configtx.yaml", "w")
     fHandle.write(yaml.dump(config, default_flow_style=False))
@@ -319,16 +288,16 @@ def genNetwork(domainName, orgsCount):
 
 def generate():
     domainName = "example.com"
-    orgsCount = 3
-    peerCounts = [2, 2, 2]
+    orgsCount = 2
+    peerCounts = [2, 2]
 
     genNetwork(domainName, orgsCount)
-    genCrypto(domainName, orgsCount, peerCounts)
-    p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
-    p.communicate(input=b"y")
-    p.wait()
+    # genCrypto(domainName, orgsCount, peerCounts)
+    # p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
+    # p.communicate(input=b"y")
+    # p.wait()
 
-    generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
+    # generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
 
 def copytree(src, dst):
     if os.path.isdir(dst): shutil.rmtree(dst)
