@@ -288,16 +288,16 @@ def genNetwork(domainName, orgsCount):
 
 def generate():
     domainName = "example.com"
-    orgsCount = 2
-    peerCounts = [2, 2]
+    orgsCount = 3
+    peerCounts = [2, 2, 2]
 
     genNetwork(domainName, orgsCount)
-    # genCrypto(domainName, orgsCount, peerCounts)
-    # p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
-    # p.communicate(input=b"y")
-    # p.wait()
+    genCrypto(domainName, orgsCount, peerCounts)
+    p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
+    p.communicate(input=b"y")
+    p.wait()
 
-    # generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
+    generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
 
 def copytree(src, dst):
     if os.path.isdir(dst): shutil.rmtree(dst)
