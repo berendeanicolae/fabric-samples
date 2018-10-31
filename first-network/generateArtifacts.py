@@ -242,7 +242,7 @@ def genNetworkOrderer(domainName):
 def genNetworkProfiles(domainName, orgsCount):
     config = {}
 
-    config["OrgsOrdererGenesis"] = {
+    config["TwoOrgsOrdererGenesis"] = {
         "Capabilities": {
             "V1_1": True,
         },
@@ -283,7 +283,7 @@ def genNetworkProfiles(domainName, orgsCount):
             },
         },
     }
-    config["OrgsChannel"] = {
+    config["TwoOrgsChannel"] = {
         "Consortium": "SampleConsortium",
         "Application": {
             "Organizations": [{
@@ -322,12 +322,12 @@ def generate():
     orgsCount = 3
     peerCounts = [2, 2, 2]
 
+    genNetwork(domainName, orgsCount)
     genCrypto(domainName, orgsCount, peerCounts)
     p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
     p.communicate(input=b"y")
     p.wait()
 
-    genNetwork(domainName, orgsCount)
     generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
 
 def copytree(src, dst):
