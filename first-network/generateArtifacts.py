@@ -7,8 +7,10 @@ import yaml
 
 from collections import OrderedDict
 
-def genNetwork(domainName, orgCount):
-    pass
+def genNetwork(domainName, orgsCount):
+    config = {}
+
+    config
 
 def genOrdererConfig(domainName):
     config = []
@@ -22,10 +24,10 @@ def genOrdererConfig(domainName):
 
     return config
 
-def genPeerConfig(domainName, orgCount, peerCount):
+def genPeerConfig(domainName, orgsCount, peerCount):
     config = []
 
-    for org in range(orgCount):
+    for org in range(orgsCount):
         nodeConfig = {
             "Count": peerCount[org]
         }
@@ -43,11 +45,11 @@ def genPeerConfig(domainName, orgCount, peerCount):
 
     return config
 
-def genCrypto(domainName, orgCount, peerCount):
+def genCrypto(domainName, orgsCount, peerCount):
     config = {}
 
     config["OrdererOrgs"] = genOrdererConfig(domainName)
-    config["PeerOrgs"] = genPeerConfig(domainName, orgCount, peerCount)
+    config["PeerOrgs"] = genPeerConfig(domainName, orgsCount, peerCount)
 
     fHandle = open("crypto-config.yaml", "w")
     fHandle.write(yaml.dump(config, default_flow_style=False))
@@ -165,7 +167,7 @@ def genCliService(imageName, networkName, domainName, loggingLevel):
 
     return { serviceName : serviceConfig }
 
-def generateDocker(repoOwner, networkName, domainName, orgCount, peerCount, loggingLevel):
+def generateDocker(repoOwner, networkName, domainName, orgsCount, peerCount, loggingLevel):
     config = {
         "version": '3',
         "networks": {
@@ -177,7 +179,7 @@ def generateDocker(repoOwner, networkName, domainName, orgCount, peerCount, logg
     }
 
     config["services"].update(genOrdererService("{}/fabric-orderer:latest".format(repoOwner), networkName, domainName, loggingLevel))
-    for org in range(orgCount):
+    for org in range(orgsCount):
         for peer in range(peerCount[org]):
             config["services"].update(genPeerService("berendeanicolae/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
     config["services"].update(genCliService("{}/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
@@ -186,17 +188,146 @@ def generateDocker(repoOwner, networkName, domainName, orgCount, peerCount, logg
     fHandle.write(yaml.dump(config, default_flow_style=False))
     fHandle.close()
 
+def genNetworkOrgs(domainName, orgsCount):
+    config = []
+    config.append({
+        "Name" : "OrdererOrg",
+        "ID" : "OrdererMSP",
+        "MSPDir" : "crypto-config/ordererOrganizations/example.com/msp",
+    })
+    for org in range(orgsCount):
+        orgConfig = {}
+        orgConfig["Name"] = "Org{}MSP".format(org+1)
+        orgConfig["ID"] = "Org{}MSP".format(org+1)
+        orgConfig["MSPDir"] = "crypto-config/peerOrganizations/org{}.example.com/msp".format(org+1)
+        orgConfig["AnchorPeers"] = [{
+            "Host": "peer0.org{}.{}".format(org+1, domainName),
+            "Port": 7051,
+        }]
+        config.append(orgConfig)
+
+    return config
+
+def genNetworkCapabilities():
+    config = {}
+    config["Global"] = {"V1_1": True}
+    config["Orderer"] = {"V1_1": True}
+    config["Application"] = {"V1_2": True}
+
+    return config
+
+def genNetworkApplication():
+    config = {}
+    config["Organizations"] = None
+
+    return config
+
+def genNetworkOrderer(domainName):
+    config = {}
+    config["OrdererType"] = "solo"
+    config["Addresses"] = ["orderer.{}:7050".format(domainName)]
+    config["BatchTimeout"] = "2s"
+    config["BatchSize"] = {
+        "MaxMessageCount": 10,
+        "AbsoluteMaxBytes": "99 MB",
+        "PreferredMaxBytes": "512 KB",
+    }
+    config["Kafka"] = {
+        "Brokers": ["127.0.0.1:9092"]
+    }
+    config["Organizations"] = None
+
+    return config
+
+def genNetworkProfiles(domainName, orgsCount):
+    config = {}
+
+    config["OrgsOrdererGenesis"] = {
+        "Capabilities": {
+            "V1_1": True,
+        },
+        "Orderer": {
+            "OrdererType": "solo",
+            "Addresses": ["orderer.{}".format(domainName)],
+            "BatchTimeout": "2s",
+            "BatchSize": {
+                "MaxMessageCount": 10,
+                "AbsoluteMaxBytes": "99 MB",
+                "PreferredMaxBytes": "512 KB",
+            },
+            "Kafka": {
+                "Brokers": ["127.0.0.1:9092"]
+            },
+            "Organizations": [{
+                    "Name": "OrdererOrg",
+                    "ID": "OrdererMSP",
+                    "MSPDir": "crypto-config/ordererOrganizations/example.com/msp"
+                }
+            ],
+            "Capabilities": {
+                "V1_1": True
+            }
+        },
+        "Consortiums": {
+            "SampleConsortium": {
+                "Organizations": [{
+                    "Name": "Org{}MSP".format(org+1),
+                    "ID": "Org{}MSP".format(org+1),
+                    "MSPDir": "crypto-config/peerOrganizations/org{}.{}/msp".format(org+1, domainName),
+                    "AnchorPeers": [{
+                            "Host": "peer0.org{}.{}".format(org+1, domainName),
+                            "Port": 7051,
+                        }
+                    ]
+                } for org in range(orgsCount)]
+            },
+        },
+    }
+    config["OrgsChannel"] = {
+        "Consortium": "SampleConsortium",
+        "Application": {
+            "Organizations": [{
+                "Name": "Org{}MSP".format(org+1),
+                "ID": "Org{}MSP".format(org+1),
+                "MSPDir": "crypto-config/peerOrganizations/org{}.{}/msp".format(org+1, domainName),
+                "AnchorPeers": [{
+                        "Host": "peer0.org{}.{}".format(org+1, domainName),
+                        "Port": 7051,
+                    },
+                ],
+            } for org in range(orgsCount)],
+            "Capabilities": {
+                "V1_2": True,
+            }
+        }
+    }
+
+    return config
+
+def genNetwork(domainName, orgsCount):
+    config = {}
+
+    config["Organizations"] = genNetworkOrgs(domainName, orgsCount)
+    config["Capabilities"] = genNetworkCapabilities()
+    config["Application"] = genNetworkApplication()
+    config["Orderer"] = genNetworkOrderer(domainName)
+    config["Profiles"] = genNetworkProfiles(domainName, orgsCount)
+
+    fHandle = open("configtx.yaml", "w")
+    fHandle.write(yaml.dump(config, default_flow_style=False))
+    fHandle.close()
 
 def generate():
     domainName = "example.com"
     orgsCount = 3
     peerCounts = [2, 2, 2]
- 
+
     genCrypto(domainName, orgsCount, peerCounts)
     p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
     p.communicate(input=b"y")
     p.wait()
 
+    genNetwork(domainName, orgsCount)
     generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
 
 def copytree(src, dst):
