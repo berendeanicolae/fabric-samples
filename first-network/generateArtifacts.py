@@ -182,7 +182,7 @@ def generateDocker(repoOwner, networkName, domainName, orgsCount, peerCount, log
     for org in range(orgsCount):
         for peer in range(peerCount[org]):
             config["services"].update(genPeerService("berendeanicolae/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
-    config["services"].update(genCliService("{}/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
+    config["services"].update(genCliService("berendeanicolae/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
 
     fHandle = open("docker-compose-cli.yaml", "w")
     fHandle.write(yaml.dump(config, default_flow_style=False))
@@ -286,10 +286,115 @@ def genNetwork(domainName, orgsCount):
     fHandle.write(yaml.dump(config, default_flow_style=False))
     fHandle.close()
 
+def generateHighThroughput(domainName, orgsCount, peersCount):
+    fHandle = open("../high-throughput/scripts/channel-setup.sh", "w")
+    fHandle.write('''
+#
+# Copyright IBM Corp All Rights Reserved
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+
+# Channel creation
+echo "========== Creating channel: "$CHANNEL_NAME" =========="
+peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ../channel-artifacts/channel.tx --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+
+declare -a peersCount=({peersCount})
+for (( org=1; org<${{#peersCount[@]}}; ++org ))
+do
+    for (( peer=0; peer<${{peersCount[$org]}}; ++peer ))
+    do
+        echo "========== Joining peer$peer.org$org.example.com to channel mychannel =========="
+        export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/users/Admin@org$org.example.com/msp
+        export CORE_PEER_ADDRESS=peer$peer.org$org.example.com:7051
+        export CORE_PEER_LOCALMSPID="Org"$org"MSP"
+        export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/peers/peer$peer.org$org.example.com/tls/ca.crt
+        peer channel join -b ${{CHANNEL_NAME}}.block
+        if [ $peer -eq 0 ]
+        then
+             peer channel update -o orderer.example.com:7050 -c $CHANNEL_NAME -f ../channel-artifacts/${{CORE_PEER_LOCALMSPID}}anchors.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA
+        fi
+    done
+done
+'''.format(peersCount=" ".join(map(str, [0]+peersCount))))
+    fHandle.close()
+
+    fHandle = open("../high-throughput/scripts/install-chaincode.sh", "w")
+    fHandle.write('''
+#
+# Copyright IBM Corp All Rights Reserved
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+declare -a peersCount=({peersCount})
+for (( org=1; org<${{#peersCount[@]}}; ++org ))
+do
+    for (( peer=0; peer<${{peersCount[$org]}}; ++peer ))
+    do
+        echo "========== Installing chaincode on peer$peer.org$org =========="
+        export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/users/Admin@org$org.example.com/msp
+        export CORE_PEER_ADDRESS=peer$peer.org$org.example.com:7051
+        export CORE_PEER_LOCALMSPID="Org"$org"MSP"
+        export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/peers/peer$peer.org$org.example.com/tls/ca.crt
+        peer chaincode install -n $CC_NAME -v $1 -p github.com/hyperledger/fabric/examples/chaincode/go
+    done
+done
+'''.format(peersCount=" ".join(map(str, [0]+peersCount))))
+    fHandle.close()
+
+    fHandle = open("../high-throughput/scripts/instantiate-chaincode.sh", "w")
+    fHandle.write('''
+#
+# Copyright IBM Corp All Rights Reserved
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+echo "========== Instantiating chaincode v$1 =========="
+peer chaincode instantiate -o orderer.example.com:7050 --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args": []}}' -v $1 -P "OR ({policy})"
+'''.format(policy=",".join(["'Org{}MSP.member'".format(e) for e in range(1,orgsCount+1)])))
+    fHandle.close()
+
+    fHandle = open("../high-throughput/scripts/many-updates.sh", "w")
+    fHandle.write('''
+#
+# Copyright IBM Corp All Rights Reserved
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+org=1
+peer=0
+declare -a peersCount=({peersCount})
+
+for (( i = 0; i < 1000; ++i ))
+do
+        export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/users/Admin@org$org.example.com/msp
+        export CORE_PEER_ADDRESS=peer$peer.org$org.example.com:7051
+        export CORE_PEER_LOCALMSPID="Org"$org"MSP"
+        export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/peers/peer$peer.org$org.example.com/tls/ca.crt
+        peer chaincode invoke -o orderer.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}' &
+        peer=$(expr $peer + 1)
+        if [ $peer -eq ${{peersCount[$org]}} ]
+        then
+                org=$(expr $org + 1)
+                peer=0
+        fi
+        if [ $org -eq ${{#peersCount[@]}} ]
+        then
+                org=1
+        fi
+done
+'''.format(peersCount=" ".join(map(str, [0]+peersCount))))
+    fHandle.close()
+
 def generate():
     domainName = "example.com"
-    orgsCount = 3
-    peerCounts = [2, 2, 2]
+    orgsCount = 2
+    peerCounts = [2, 100]
 
     genNetwork(domainName, orgsCount)
     genCrypto(domainName, orgsCount, peerCounts)
@@ -297,6 +402,7 @@ def generate():
     p.communicate(input=b"y")
     p.wait()
 
+    generateHighThroughput(domainName, orgsCount, peerCounts)
     generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
 
 def copytree(src, dst):
