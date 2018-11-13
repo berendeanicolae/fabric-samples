@@ -12,14 +12,12 @@ def genNetwork(domainName, orgsCount):
 
     config
 
-def genOrdererConfig(domainName):
+def genOrdererConfig(domainName, orderersCount):
     config = []
     config.append({
         "Name": "Orderer",
         "Domain": domainName,
-        "Specs": [
-            {"Hostname": "orderer"},
-        ],
+        "Specs": [{"Hostname": "orderer{}".format(e)} for e in range(orderersCount)],
     })
 
     return config
@@ -45,20 +43,69 @@ def genPeerConfig(domainName, orgsCount, peerCount):
 
     return config
 
-def genCrypto(domainName, orgsCount, peerCount):
+def genCrypto(domainName, orgsCount, orderersCount, peerCount):
     config = {}
 
-    config["OrdererOrgs"] = genOrdererConfig(domainName)
+    config["OrdererOrgs"] = genOrdererConfig(domainName, orderersCount)
     config["PeerOrgs"] = genPeerConfig(domainName, orgsCount, peerCount)
 
     fHandle = open("crypto-config.yaml", "w")
     fHandle.write(yaml.dump(config, default_flow_style=False))
     fHandle.close()
 
-def genOrdererService(imageName, networkName, domainName, loggingLevel):
+def genZookeperService(imageName, networkName, domainName, zooKeepersCount, index):
+    serviceName = "zookeper{}".format(index)
+    serviceConfig = {
+        "hostname": "zookeper{}.{}".format(index, domainName),
+        "image": imageName,
+        "networks": {
+            networkName: {
+                "aliases": [
+                    "zookeper{}.{}".format(index, domainName),
+                ],
+            }
+        },
+        "environment": [
+            "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE={}".format(networkName),
+            "ZOO_MY_ID={}".format(index+1),
+            "ZOO_SERVERS={}".format(" ".join(["server.{}=zookeeper{}:2888:3888".format(e+1, e) for e in range(zooKeepersCount)]))
+        ],
+    }
+
+    return { serviceName : serviceConfig }
+
+def genKafkaService(imageName, networkName, domainName, zooKeepersCount, index):
+    serviceName = "kafka{}".format(index)
+    serviceConfig = {
+        "hostname": "kafka{}.{}".format(index, domainName),
+        "image": imageName,
+        "networks": {
+            networkName: {
+                "aliases": [
+                    "kafka{}.{}".format(index, domainName),
+                ],
+            }
+        },
+        "environment": [
+            "CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE={}".format(domainName),
+            "KAFKA_MESSAGE_MAX_BYTES={}".format(15728640),
+            "KAFKA_REPLICA_FETCH_MAX_BYTES={}".format(15728640),
+            "KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE={}".format(False),
+            "KAFKA_DEFAULT_REPLICATION_FACTOR={}".format(3),
+            "KAFKA_MIN_INSYNC_REPLICAS={}".format(2),
+            "KAFKA_ZOOKEEPER_CONNECT={}".format("zookeeper{}.{}:2181".format(e, domainName) for e in range(zooKeepersCount)),
+            "KAFKA_BROKER_ID={}".format(index),
+            "KAFKA_LOG_RETENTIONMS={}".format(-1),
+        ],
+    }
+
+    return { serviceName : serviceConfig }
+
+
+def genOrdererService(imageName, networkName, domainName, loggingLevel, index, kafka=False):
     serviceName = "orderer"
     serviceConfig = {
-        "hostname": "orderer.{}".format(domainName),
+        "hostname": "orderer{}.{}".format(index, domainName),
         "image": imageName,
         "environment": [
             "ORDERER_GENERAL_LOGLEVEL={}".format(loggingLevel),
@@ -82,11 +129,15 @@ def genOrdererService(imageName, networkName, domainName, loggingLevel):
         "networks": {
             networkName: {
                 "aliases": [
-                    "orderer.{}".format(domainName)
+                    "orderer{}.{}".format(index, domainName)
                 ],
             }
         }
     }
+    if kafka:
+        serviceConfig["environment"].append("ORDERER_KAFKA_RETRY_SHORTINTERVAL=1s")
+        serviceConfig["environment"].append("ORDERER_KAFKA_RETRY_SHORTTOTAL=30s")
+        serviceConfig["environment"].append("ORDERER_KAFKA_VERBOSE=true")
 
     return { serviceName : serviceConfig }
 
@@ -167,7 +218,7 @@ def genCliService(imageName, networkName, domainName, loggingLevel):
 
     return { serviceName : serviceConfig }
 
-def generateDocker(repoOwner, networkName, domainName, orgsCount, peerCount, loggingLevel):
+def generateDocker(repoOwner, networkName, domainName, orgsCount, orderersCount, peerCounts, zooKeepersCount, kafkasCount, loggingLevel):
     config = {
         "version": '3',
         "networks": {
@@ -178,11 +229,16 @@ def generateDocker(repoOwner, networkName, domainName, orgsCount, peerCount, log
         "services": {}
     }
 
-    config["services"].update(genOrdererService("{}/fabric-orderer:latest".format(repoOwner), networkName, domainName, loggingLevel))
+    for orderer in range(orderersCount):
+        config["services"].update(genOrdererService("{}/fabric-orderer:latest".format(repoOwner), networkName, domainName, loggingLevel, orderer, kafkasCount>0))
     for org in range(orgsCount):
-        for peer in range(peerCount[org]):
+        for peer in range(peerCounts[org]):
             config["services"].update(genPeerService("berendeanicolae/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
-    config["services"].update(genCliService("berendeanicolae/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
+    for zooKeeper in range(zooKeepersCount):
+        config["services"].update(genZookeperService("{}/fabric-zookeeper:latest".format(repoOwner), networkName, domainName, zooKeepersCount, zooKeeper))
+    for kafka in range(kafkasCount):
+        config["services"].update(genKafkaService("{}/fabric-kafka:latest".format(repoOwner), networkName, domainName, zooKeepersCount, kafka))
+    config["services"].update(genCliService("{}/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
 
     fHandle = open("docker-compose-cli.yaml", "w")
     fHandle.write(yaml.dump(config, default_flow_style=False))
@@ -222,20 +278,24 @@ def genNetworkApplication():
 
     return config
 
-def genNetworkOrderer(domainName):
+def genNetworkOrderer(domainName, orderersCount=1, kafkasCount=0):
     config = {}
     config["OrdererType"] = "solo"
-    config["Addresses"] = ["orderer.{}:7050".format(domainName)]
+    config["Addresses"] = ["orderer{}.{}:7050".format(e, domainName) for e in range(orderersCount)]
     config["BatchTimeout"] = "2s"
     config["BatchSize"] = {
         "MaxMessageCount": 10,
-        "AbsoluteMaxBytes": "99 MB",
-        "PreferredMaxBytes": "512 KB",
+        "AbsoluteMaxBytes": 10485760,
+        "PreferredMaxBytes": 524288,
     }
     config["Kafka"] = {
         "Brokers": ["127.0.0.1:9092"]
     }
     config["Organizations"] = None
+
+    if kafkasCount>0:
+        config["OrdererType"] = "kafka"
+        config["Kafka"]["Brokers"] = ["kafka{}.{}".format(e, domainName) for e in range(kafkasCount)]
 
     return config
 
@@ -273,13 +333,13 @@ def setNetworkProfiles(config, domainName):
         }
     }
 
-def genNetwork(domainName, orgsCount):
+def genNetwork(domainName, orgsCount, orderersCount):
     config = {}
 
     config["Organizations"] = genNetworkOrgs(domainName, orgsCount)
     config["Capabilities"] = genNetworkCapabilities()
     config["Application"] = genNetworkApplication()
-    config["Orderer"] = genNetworkOrderer(domainName)
+    config["Orderer"] = genNetworkOrderer(domainName, orderersCount)
     setNetworkProfiles(config, domainName)
 
     fHandle = open("configtx.yaml", "w")
@@ -399,18 +459,23 @@ done
     fHandle.close()
 
 def generate():
+    kafka=True
+
     domainName = "example.com"
     orgsCount = 2
-    peerCounts = [2, 100]
+    orderersCount = 1
+    zooKeepersCount = 3 if kafka else 0
+    kafkasCount = 4 if kafka else 0
+    peerCounts = [2, 2]
 
-    genNetwork(domainName, orgsCount)
-    genCrypto(domainName, orgsCount, peerCounts)
+    genNetwork(domainName, orgsCount, orderersCount)
+    genCrypto(domainName, orgsCount, orderersCount, peerCounts)
     p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
     p.communicate(input=b"y")
     p.wait()
 
     generateHighThroughput(domainName, orgsCount, peerCounts)
-    generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, peerCounts, "INFO")
+    generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, orderersCount, peerCounts, zooKeepersCount, kafkasCount, "INFO")
 
 def copytree(src, dst):
     if os.path.isdir(dst): shutil.rmtree(dst)
