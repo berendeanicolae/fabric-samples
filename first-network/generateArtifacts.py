@@ -53,15 +53,15 @@ def genCrypto(domainName, orgsCount, orderersCount, peerCount):
     fHandle.write(yaml.dump(config, default_flow_style=False))
     fHandle.close()
 
-def genZookeperService(imageName, networkName, domainName, zooKeepersCount, index):
-    serviceName = "zookeper{}".format(index)
+def genZookeeperService(imageName, networkName, domainName, zooKeepersCount, index):
+    serviceName = "zookeeper{}".format(index)
     serviceConfig = {
-        "hostname": "zookeper{}.{}".format(index, domainName),
+        "hostname": "zookeeper{}.{}".format(index, domainName),
         "image": imageName,
         "networks": {
             networkName: {
                 "aliases": [
-                    "zookeper{}.{}".format(index, domainName),
+                    "zookeeper{}.{}".format(index, domainName),
                 ],
             }
         },
@@ -93,7 +93,7 @@ def genKafkaService(imageName, networkName, domainName, zooKeepersCount, index):
             "KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE={}".format(False),
             "KAFKA_DEFAULT_REPLICATION_FACTOR={}".format(3),
             "KAFKA_MIN_INSYNC_REPLICAS={}".format(2),
-            "KAFKA_ZOOKEEPER_CONNECT={}".format("zookeeper{}.{}:2181".format(e, domainName) for e in range(zooKeepersCount)),
+            "KAFKA_ZOOKEEPER_CONNECT={}".format(" ".join(["zookeeper{}.{}:2181".format(e, domainName) for e in range(zooKeepersCount)])),
             "KAFKA_BROKER_ID={}".format(index),
             "KAFKA_LOG_RETENTIONMS={}".format(-1),
         ],
@@ -103,7 +103,7 @@ def genKafkaService(imageName, networkName, domainName, zooKeepersCount, index):
 
 
 def genOrdererService(imageName, networkName, domainName, loggingLevel, index, kafka=False):
-    serviceName = "orderer"
+    serviceName = "orderer{}".format(index)
     serviceConfig = {
         "hostname": "orderer{}.{}".format(index, domainName),
         "image": imageName,
@@ -123,8 +123,8 @@ def genOrdererService(imageName, networkName, domainName, loggingLevel, index, k
         "command": "orderer",
         "volumes": [
             "/shared/channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block",
-            "/shared/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/msp:/var/hyperledger/orderer/msp",
-            "/shared/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/:/var/hyperledger/orderer/tls",
+            "/shared/crypto-config/ordererOrganizations/example.com/orderers/orderer0.example.com/msp:/var/hyperledger/orderer/msp",
+            "/shared/crypto-config/ordererOrganizations/example.com/orderers/orderer0.example.com/tls/:/var/hyperledger/orderer/tls",
         ],
         "networks": {
             networkName: {
@@ -235,7 +235,7 @@ def generateDocker(repoOwner, networkName, domainName, orgsCount, orderersCount,
         for peer in range(peerCounts[org]):
             config["services"].update(genPeerService("berendeanicolae/fabric-peer:latest".format(repoOwner), networkName, domainName, org+1, peer, loggingLevel))
     for zooKeeper in range(zooKeepersCount):
-        config["services"].update(genZookeperService("{}/fabric-zookeeper:latest".format(repoOwner), networkName, domainName, zooKeepersCount, zooKeeper))
+        config["services"].update(genZookeeperService("{}/fabric-zookeeper:latest".format(repoOwner), networkName, domainName, zooKeepersCount, zooKeeper))
     for kafka in range(kafkasCount):
         config["services"].update(genKafkaService("{}/fabric-kafka:latest".format(repoOwner), networkName, domainName, zooKeepersCount, kafka))
     config["services"].update(genCliService("{}/fabric-tools:latest".format(repoOwner), networkName, domainName, loggingLevel))
@@ -355,11 +355,11 @@ def generateHighThroughput(domainName, orgsCount, peersCount):
 # SPDX-License-Identifier: Apache-2.0
 #
 
-ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+ORDERER_CA=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 
 # Channel creation
 echo "========== Creating channel: "$CHANNEL_NAME" =========="
-peer channel create -o orderer.example.com:7050 -c $CHANNEL_NAME -f ../channel-artifacts/channel.tx --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+peer channel create -o orderer0.example.com:7050 -c $CHANNEL_NAME -f ../channel-artifacts/channel.tx --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 
 declare -a peersCount=({peersCount})
 for (( org=1; org<${{#peersCount[@]}}; ++org ))
@@ -374,7 +374,7 @@ do
         peer channel join -b ${{CHANNEL_NAME}}.block
         if [ $peer -eq 0 ]
         then
-             peer channel update -o orderer.example.com:7050 -c $CHANNEL_NAME -f ../channel-artifacts/${{CORE_PEER_LOCALMSPID}}anchors.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA
+             peer channel update -o orderer0.example.com:7050 -c $CHANNEL_NAME -f ../channel-artifacts/${{CORE_PEER_LOCALMSPID}}anchors.tx --tls $CORE_PEER_TLS_ENABLED --cafile $ORDERER_CA
         fi
     done
 done
@@ -414,7 +414,7 @@ done
 #
 
 echo "========== Instantiating chaincode v$1 =========="
-peer chaincode instantiate -o orderer.example.com:7050 --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args": []}}' -v $1 -P "OR ({policy})"
+peer chaincode instantiate -o orderer0.example.com:7050 --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args": []}}' -v $1 -P "OR ({policy})"
 '''.format(policy=",".join(["'Org{}MSP.member'".format(e) for e in range(1,orgsCount+1)])))
     fHandle.close()
 
@@ -439,9 +439,9 @@ do
         export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/peers/peer$peer.org$org.example.com/tls/ca.crt
         if [ "$init" = true ]
         then
-                peer chaincode invoke -o orderer.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}'
+                peer chaincode invoke -o orderer0.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}'
         else
-                peer chaincode invoke -o orderer.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}' &
+                peer chaincode invoke -o orderer0.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}' &
         fi
         peer=$(expr $peer + 1)
         if [ $peer -eq ${{peersCount[$org]}} ]
@@ -458,6 +458,18 @@ done
 '''.format(peersCount=" ".join(map(str, [0]+peersCount))))
     fHandle.close()
 
+    fHandle = open("../high-throughput/scripts/get-invoke.sh", "w")
+    fHandle.write('''
+#
+# Copyright IBM Corp All Rights Reserved
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+peer chaincode invoke -o orderer0.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{"Args":["get","'$1'"]}'
+''')
+    fHandle.close()
+
 def generate():
     kafka=True
 
@@ -466,7 +478,7 @@ def generate():
     orderersCount = 1
     zooKeepersCount = 3 if kafka else 0
     kafkasCount = 4 if kafka else 0
-    peerCounts = [2, 2]
+    peerCounts = [2, 100]
 
     genNetwork(domainName, orgsCount, orderersCount)
     genCrypto(domainName, orgsCount, orderersCount, peerCounts)
