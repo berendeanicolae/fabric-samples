@@ -4,14 +4,11 @@ import subprocess
 
 from getContainerInfo import getContainerInfo
 
-services = [
-	"fabric_cli",
-	"fabric_orderer",
-	"fabric_peer0_org1",
-	"fabric_peer1_org1",
-	"fabric_peer0_org2",
-	"fabric_peer1_org2",
-]
+peersCount = [2, 100]
+services = []
+for org in range(len(peersCount)):
+	for peer in range(peersCount[org]):
+		services.append("fabric_peer{}_org{}".format(peer, org+1))
 
 for service in services:
 	cnt = 0
