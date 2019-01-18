@@ -7,11 +7,6 @@ import yaml
 
 from collections import OrderedDict
 
-def genNetwork(domainName, orgsCount):
-    config = {}
-
-    config
-
 def genOrdererConfig(domainName, orderersCount):
     config = []
     config.append({
@@ -505,6 +500,88 @@ do
 done
 '''.format(peersCount=" ".join(map(str, [0]+peersCount))))
     fHandle.close()
+
+def generateCerts():
+    os.environ["PATH"] = ";".join(os.environ.get("PATH", "").split(";") + [os.path.dirname(__file__) + "\\..\\"])
+
+    p = subprocess.Popen(["which cryptogen"], stdout=subprocess.PIPE, shell=True, stdout=subprocess.PIPE)
+    p.wait()
+    if p.returncode != 0:
+        print("cryptogen tool not found. exiting")
+        exit()
+
+    print('''
+##########################################################
+##### Generate certificates using cryptogen tool #########
+##########################################################''')
+
+    if os.path.isdir("crypto-config"):
+        shutil.rmtree("crypto-config")
+
+    p = subprocess.Popen(["cryptogen generate --config=./crypto-config.yaml"], shell=True)
+    p.wait()
+    if p.returncode != 0:
+        print("Failed to generate certificates...")
+        exit(1)
+
+def replacePrivateKey(orgsCount, domainName):
+    p = subprocess.Popen(["uname -s"], shell=True, stdout=subprocess.PIPE)
+    arch, _ = p.communicate()
+    p.wait()
+
+    opts = ""
+    if arch == "Darwin":
+        opts = "-it"
+    else:
+        opts = "-i"
+
+    for org in range(orgsCount):
+        path = "crypto-config/peerOrganizations/org{}.{}/ca".format(org+1, domainName)
+
+        p = subprocess.Popen(["ls {}".format(path)], shell=True, stdout=subprocess.PIPE)
+        pkPath, _ = p.communicate()
+        p.wait()
+
+        p = subprocess.Popen(["sed {} \"s/CA2_PRIVATE_KEY/{}/g\"".format(opts, pkPath)], shell=True)
+        p.wait()
+
+def generateChannelArtifacts(orgsCount):
+    p = subprocess.Popen(["which configtxgen"], stdout=subprocess.PIPE, shell=True, stdout=subprocess.PIPE)
+    p.wait()
+    if p.returncode != 0:
+        print("configtxgen tool not found. exiting")
+        exit()
+
+    print('''
+##########################################################
+#########  Generating Orderer Genesis block ##############
+##########################################################''')
+    p = subprocess.Popen(["configtxgen -profile TwoOrgsOrdererGenesis -outputBlock ./channel-artifacts/genesis.block"], shell=True)
+    p.wait()
+    if p.returncode != 0:
+        print("Failed to generate orderer genesis block...")
+        exit(1)
+
+    print('''
+#################################################################
+### Generating channel configuration transaction 'channel.tx' ###
+#################################################################''')
+    p = subprocess.Popen(["configtxgen -profile TwoOrgsChannel -outputCreateChannelTx ./channel-artifacts/channel.tx -channelID mychannel"], shell=True)
+    p.wait()
+    if p.returncode != 0:
+        print("Failed to generate channel configuration transaction...")
+        exit(1)
+
+    for org in range(orgsCount):
+        print('''
+#################################################################
+#######    Generating anchor peer update for Org1MSP   ##########
+#################################################################''')
+        p = subprocess.Popen(["configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID mychannel -asOrg Org{}MSP".format(org+1)], shell=True)
+        p.wait()
+        if p.returncode != 0:
+            print("Failed to generate channel configuration transaction...")
+            exit(1)
 
 def generate():
     kafka=True
