@@ -536,13 +536,14 @@ def replacePrivateKey(orgsCount, domainName):
         opts = "-i"
 
     for org in range(orgsCount):
-        path = "crypto-config/peerOrganizations/org{}.{}/ca".format(org+1, domainName)
+        path = "crypto-config/peerOrganizations/org{}.{}/ca/*_sk".format(org+1, domainName)
 
         p = subprocess.Popen(["ls {}".format(path)], shell=True, stdout=subprocess.PIPE)
         pkPath, _ = p.communicate()
+        pkPath = os.path.basename(pkPath).strip()
         p.wait()
 
-        p = subprocess.Popen(["sed {} \"s/CA{}_PRIVATE_KEY/{}/g\" docker-compose-e2e.yaml".format(opts, , org+1, pkPath)], shell=True)
+        p = subprocess.Popen(["sed {} \"s/CA{}_PRIVATE_KEY/{}/g\" docker-compose-e2e.yaml".format(opts, org+1, pkPath)], shell=True)
         p.wait()
 
 def generateChannelArtifacts(orgsCount):
