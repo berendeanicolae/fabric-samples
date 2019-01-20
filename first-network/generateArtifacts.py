@@ -595,9 +595,10 @@ def generate():
 
     genNetwork(domainName, orgsCount, orderersCount)
     genCrypto(domainName, orgsCount, orderersCount, peerCounts)
-    p = subprocess.Popen(["./byfn.sh generate"], stdin=subprocess.PIPE, cwd=os.getcwd(), shell=True)
-    p.communicate(input=b"y")
-    p.wait()
+
+    generateCerts()
+    replacePrivateKey(orgsCount, domainName)
+    generateChannelArtifacts(orgsCount)
 
     generateHighThroughput(domainName, orgsCount, peerCounts)
     generateDocker("hyperledger", "hyperledger-ov", domainName, orgsCount, orderersCount, peerCounts, zooKeepersCount, kafkasCount, "INFO")
