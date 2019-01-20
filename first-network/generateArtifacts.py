@@ -578,7 +578,7 @@ def generateChannelArtifacts(orgsCount):
 #################################################################
 #######    Generating anchor peer update for Org{}MSP   ##########
 #################################################################'''.format(org+1))
-        p = subprocess.Popen(["configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID mychannel -asOrg Org{}MSP".format(org+1)], shell=True)
+        p = subprocess.Popen(["configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org{org}MSPanchors.tx -channelID mychannel -asOrg Org{org}MSP".format(org=org+1)], shell=True)
         p.wait()
         if p.returncode != 0:
             print("Failed to generate channel configuration transaction...")
