@@ -502,9 +502,9 @@ done
     fHandle.close()
 
 def generateCerts():
-    os.environ["PATH"] = ";".join(os.environ.get("PATH", "").split(";") + [os.path.dirname(__file__) + "\\..\\"])
+    os.environ["PATH"] = ":".join(os.environ.get("PATH", "").split(":") + [os.path.dirname(__file__) + os.path.abspath("./../bin")])
 
-    p = subprocess.Popen(["which cryptogen"], stdout=subprocess.PIPE, shell=True, stdout=subprocess.PIPE)
+    p = subprocess.Popen(["which cryptogen"], stdout=subprocess.PIPE, shell=True)
     p.wait()
     if p.returncode != 0:
         print("cryptogen tool not found. exiting")
@@ -542,11 +542,11 @@ def replacePrivateKey(orgsCount, domainName):
         pkPath, _ = p.communicate()
         p.wait()
 
-        p = subprocess.Popen(["sed {} \"s/CA2_PRIVATE_KEY/{}/g\"".format(opts, pkPath)], shell=True)
+        p = subprocess.Popen(["sed {} \"s/CA{}_PRIVATE_KEY/{}/g\" docker-compose-e2e.yaml".format(opts, , org+1, pkPath)], shell=True)
         p.wait()
 
 def generateChannelArtifacts(orgsCount):
-    p = subprocess.Popen(["which configtxgen"], stdout=subprocess.PIPE, shell=True, stdout=subprocess.PIPE)
+    p = subprocess.Popen(["which configtxgen"], stdout=subprocess.PIPE, shell=True)
     p.wait()
     if p.returncode != 0:
         print("configtxgen tool not found. exiting")
@@ -575,8 +575,8 @@ def generateChannelArtifacts(orgsCount):
     for org in range(orgsCount):
         print('''
 #################################################################
-#######    Generating anchor peer update for Org1MSP   ##########
-#################################################################''')
+#######    Generating anchor peer update for Org{}MSP   ##########
+#################################################################'''.format(org+1))
         p = subprocess.Popen(["configtxgen -profile TwoOrgsChannel -outputAnchorPeersUpdate ./channel-artifacts/Org1MSPanchors.tx -channelID mychannel -asOrg Org{}MSP".format(org+1)], shell=True)
         p.wait()
         if p.returncode != 0:
