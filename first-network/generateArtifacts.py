@@ -160,6 +160,13 @@ def genPeerService(imageName, networkName, domainName, orgIndex, peerIndex, logg
         ],
         "working_dir": "/opt/gopath/src/github.com/hyperledger/fabric/peer",
         "command": "peer node start",
+        "deploy": {
+            "resources": {
+                "reservations": {
+                    "cpus": "1.6",
+                }
+            }
+        },
         "volumes": [
             "/var/run/:/host/var/run/",
             "/shared/crypto-config/peerOrganizations/org{org}.{domain}/peers/peer{peer}.org{org}.{domain}/msp:/etc/hyperledger/fabric/msp".format(peer=peerIndex, org=orgIndex, domain=domainName),
@@ -588,11 +595,11 @@ def generate():
     kafka=True
 
     domainName = "example.com"
-    orgsCount = 10
+    orgsCount = 1
     orderersCount = 1
     zooKeepersCount = 3 if kafka else 0
     kafkasCount = 4 if kafka else 0
-    peerCounts = [10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+    peerCounts = [100]
 
     genNetwork(domainName, orgsCount, orderersCount)
     genCrypto(domainName, orgsCount, orderersCount, peerCounts)
