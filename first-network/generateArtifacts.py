@@ -163,7 +163,8 @@ def genPeerService(imageName, networkName, domainName, orgIndex, peerIndex, logg
         "deploy": {
             "resources": {
                 "reservations": {
-                    "cpus": "1.6",
+                    "cpus": "1",
+                    "memory": "1g",
                 }
             }
         },
