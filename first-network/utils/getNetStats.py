@@ -9,10 +9,10 @@ from getContainerInfo import getContainerInfo
 url_cpu = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/cpuProbe.py?token=ADmo4erb-rORlrmB6gpw2hClj2rfrS9Fks5crkFZwA%3D%3D'
 url_net = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/netProbe.py?token=ADmo4YE4IKGLbSS5eIwEqomG2OSXhLOjks5crkFzwA%3D%3D'
 
-containers = get_containers_info()
+containers = None
 
 def get_containers_info():
-    containersCount = 100
+    containersCount = 10
     containers = {}
 
     for i in range(containersCount):
@@ -42,11 +42,14 @@ def get_logs():
         subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/NetProbe.csv {cnt}_NetProbe.csv".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
 
 def signal_handler(sig, frame):
-    stop_monitor()
-    get_logs()
+    # stop_monitor()
+    # get_logs()
+    sys.exit(0)
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGKILL, signal_handler)
+    containers = get_containers_info()
+    signal.signal(signal.SIGINT, signal_handler)
 
-    start_monitor()
+    print('Start monitoring...')
+    # start_monitor()
     while True: time.sleep(1)
