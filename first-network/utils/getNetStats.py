@@ -30,7 +30,7 @@ def get_containers_info():
 
     for cnt in containersList:
         containers[cnt[0]] = cnt[1]
-    
+
     return containers
 
 def start_monitor(cnt_info):
@@ -40,7 +40,7 @@ def start_monitor(cnt_info):
     subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} rm -f CPUProbe.csv NetProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
     subprocess.Popen(["ssh {ip} \"docker exec -d {cnt_id} python cpuProbe.py 1 1 CPUProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
     subprocess.Popen(["ssh {ip} \"docker exec -d {cnt_id} python netProbe.py 1 1 NetProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
-        
+
 
 def start_monitors():
     cnts = []
