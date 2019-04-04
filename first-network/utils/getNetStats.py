@@ -2,6 +2,7 @@ import sys
 import signal
 import time
 import subprocess
+import multiprocessing
 
 from getContainerInfo import getContainerInfo
 
@@ -11,13 +12,23 @@ url_net = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_t
 
 containers = None
 
+def get_container_info(cnt):
+    return (cnt, getContainerInfo(cnt))
+
 def get_containers_info():
     containersCount = 10
     containers = {}
 
+    cnts = []
     for i in range(containersCount):
         cnt = "fabric_peer{}_org1".format(i)
-        containers[cnt] = getContainerInfo(cnt)
+        cnts.append(cnt)
+
+    pool = multiprocessing.pool.ThreadPool(containersCount)
+    containersList = pool.map(get_container_info, cnts)
+
+    for cnt in containersList:
+        containers[cnt[0]] = cnt[1]
 
     return containers
 
