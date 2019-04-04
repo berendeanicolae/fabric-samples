@@ -1,8 +1,9 @@
+import os
 import sys
 import signal
 import time
 import subprocess
-import multiprocessing
+import multiprocessing.pool
 
 from getContainerInfo import getContainerInfo
 
@@ -10,13 +11,13 @@ from getContainerInfo import getContainerInfo
 url_cpu = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/cpuProbe.py?token=ADmo4erb-rORlrmB6gpw2hClj2rfrS9Fks5crkFZwA%3D%3D'
 url_net = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/netProbe.py?token=ADmo4YE4IKGLbSS5eIwEqomG2OSXhLOjks5crkFzwA%3D%3D'
 
+containersCount = 10
 containers = None
 
 def get_container_info(cnt):
     return (cnt, getContainerInfo(cnt))
 
 def get_containers_info():
-    containersCount = 10
     containers = {}
 
     cnts = []
@@ -29,38 +30,69 @@ def get_containers_info():
 
     for cnt in containersList:
         containers[cnt[0]] = cnt[1]
-
+    
     return containers
 
-def start_monitor():
+def start_monitor(cnt_info):
+    _, ip, id, _ = cnt_info
+    subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} curl -sSL '{url}' -o {output}\"".format(ip=ip, cnt_id=id, url=url_cpu, output='cpuProbe.py')], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} curl -sSL '{url}' -o {output}\"".format(ip=ip, cnt_id=id, url=url_net, output='netProbe.py')], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} rm -f CPUProbe.csv NetProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"docker exec -d {cnt_id} python cpuProbe.py 1 1 CPUProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"docker exec -d {cnt_id} python netProbe.py 1 1 NetProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
+        
+
+def start_monitors():
+    cnts = []
     for cnt in containers:
-        ip, _, id, _ = containers[cnt]
-        subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} curl -sSL '{url}' -o {output}\"".format(ip=ip, cnt_id=id, url=url_cpu, output='cpuProbe.py')], shell=True).wait()
-        subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} curl -sSL '{url}' -o {output}\"".format(ip=ip, cnt_id=id, url=url_net, output='netProbe.py')], shell=True).wait()
-        subprocess.Popen(["ssh {ip} \"docker exec -d {cnt_id} python cpuProbe.py 1 1 CPUProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
-        subprocess.Popen(["ssh {ip} \"docker exec -d {cnt_id} python netProbe.py 1 1 NetProbe.csv\"".format(ip=ip, cnt_id=id)], shell=True).wait()
+        cnts.append((containers[cnt]))
+
+    pool = multiprocessing.pool.ThreadPool(containersCount)
+    pool.map(start_monitor, cnts)
+
+def stop_monitor(cnt_info):
+    _, ip, id, _ = cnt_info
+    subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} pkill python\"".format(ip=ip, cnt_id=id)], shell=True).wait()
 
 
-def stop_monitor():
+def stop_monitors():
+    cnts = []
     for cnt in containers:
-        ip, _, id, _ = containers[cnt]
-        subprocess.Popen(["ssh {ip} \"docker exec {cnt_id} pkill python\"".format(ip=ip, cnt_id=id)], shell=True).wait()
+        cnts.append((containers[cnt]))
+
+    pool = multiprocessing.pool.ThreadPool(containersCount)
+    pool.map(stop_monitor, cnts)
+
+def get_log(cnt_info):
+    fHandle = open(os.devnull, "wb")
+    cnt, _, ip, id, _ = cnt_info
+    subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/CPUProbe.csv {cnt}_CPUProbe.csv\"".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/NetProbe.csv {cnt}_NetProbe.csv\"".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
+    subprocess.Popen(["scp {ip}:/home/ubuntu/{cnt}_NetProbe.csv {cnt}_NetProbe.csv".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True, stdout=fHandle).wait()
+    fHandle.close()
 
 def get_logs():
+    cnts = []
     for cnt in containers:
-        ip, _, id, _ = containers[cnt]
-        subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/CPUProbe.csv {cnt}_CPUProbe.csv".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
-        subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/NetProbe.csv {cnt}_NetProbe.csv".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
+        cnts.append((cnt,)+(containers[cnt]))
+
+    pool = multiprocessing.pool.ThreadPool(containersCount)
+    pool.map(get_log, cnts)
 
 def signal_handler(sig, frame):
-    # stop_monitor()
-    # get_logs()
+    print('stopping monitoring...')
+    stop_monitors()
+    print('stopped monitoring!')
+    print('saving logs...')
+    get_logs()
+    print('logs saved!')
     sys.exit(0)
 
 if __name__ == "__main__":
     containers = get_containers_info()
     signal.signal(signal.SIGINT, signal_handler)
 
-    print('Start monitoring...')
-    # start_monitor()
+    print('start monitoring...')
+    start_monitors()
+    print('started monitoring!')
     while True: time.sleep(1)
