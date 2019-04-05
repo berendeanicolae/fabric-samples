@@ -69,6 +69,10 @@ def get_log(cnt_info):
     subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/CPUProbe.csv {cnt}_CPUProbe.csv\"".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
     subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/NetProbe.csv {cnt}_NetProbe.csv\"".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
     subprocess.Popen(["scp {ip}:/home/ubuntu/{cnt}_NetProbe.csv {cnt}_NetProbe.csv".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True, stdout=fHandle).wait()
+    subprocess.Popen(["awk '{print \"1 1 1 \" $0}' {cnt}_CPUProbe.csv > {cnt}_NodeCPU.csv".format(cnt=cnt)], shell=True).wait()
+    subprocess.Popen(["sed -i \"s/1 1 1 time/expRun col1 col2 time/g\" {cnt}_NodeCPU.csv".format(cnt=cnt)], shell=True).wait()
+    subprocess.Popen(["awk '{print \"1 1 1 \" $0}' {cnt}_NetProbe.csv > {cnt}_NodeNet.csv".format(cnt=cnt)], shell=True).wait()
+    subprocess.Popen(["sed -i \"s/1 1 1 time/expRun col1 col2 time/g\" {cnt}_NodeNet.csv".format(cnt=cnt)], shell=True).wait()
     fHandle.close()
 
 def get_logs():
