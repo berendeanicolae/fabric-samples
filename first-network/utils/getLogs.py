@@ -4,7 +4,7 @@ import subprocess
 
 from getContainerInfo import getContainerInfo
 
-peersCount = [2, 100]
+peersCount = [100]
 services = []
 for org in range(len(peersCount)):
 	for peer in range(peersCount[org]):
