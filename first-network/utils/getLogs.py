@@ -91,8 +91,8 @@ def get_log(cnt_info):
     cnt, _, ip, id, _ = cnt_info
 
     proc = subprocess.Popen(["ssh {ip} \"docker inspect {cnt} --format {{{{.LogPath}}}}\"".format(ip=ip, cnt=id)], shell=True, stdout=subprocess.PIPE)
-	logPath, _ = p.communicate()
-	logPath = logPath.strip()
+    logPath, _ = p.communicate()
+    logPath = logPath.strip()
 
     subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(os.path.dirname(os.path.dirname(logPath)))), shell=True).wait()
     subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(os.path.dirname(logPath))), shell=True).wait()
