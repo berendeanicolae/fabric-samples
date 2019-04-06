@@ -94,10 +94,10 @@ def get_log(cnt_info):
     logPath, _ = p.communicate()
     logPath = logPath.strip()
 
-    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(os.path.dirname(os.path.dirname(logPath)))), shell=True).wait()
-    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(os.path.dirname(logPath))), shell=True).wait()
-    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(logPath)), shell=True).wait()
-    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=logPath), shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\"".format(ip=ip, path=os.path.dirname(os.path.dirname(os.path.dirname(logPath))))], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\"".format(ip=ip, path=os.path.dirname(os.path.dirname(logPath)))], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\"".format(ip=ip, path=os.path.dirname(logPath))], shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\"".format(ip=ip, path=logPath)], shell=True).wait()
     subprocess.Popen(["scp {ip}:{srcFile} ./{dstFile}".format(ip=ip, srcFile=logPath, dstFile=cnt)], shell=True, stdout=fHandle).wait()
     fHandle.close()
 
