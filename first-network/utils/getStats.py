@@ -86,13 +86,42 @@ def get_stats():
     pool = multiprocessing.pool.ThreadPool(containersCount)
     pool.map(get_log, cnts)
 
+def get_log(cnt_info):
+    fHandle = open(os.devnull, "wb")
+    cnt, _, ip, id, _ = cnt_info
+
+    proc = subprocess.Popen(["ssh {ip} \"docker inspect {cnt} --format {{{{.LogPath}}}}\"".format(ip=ip, cnt=id)], shell=True, stdout=subprocess.PIPE)
+	logPath, _ = p.communicate()
+	logPath = logPath.strip()
+
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(os.path.dirname(os.path.dirname(logPath)))), shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(os.path.dirname(logPath))), shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=os.path.dirname(logPath)), shell=True).wait()
+    subprocess.Popen(["ssh {ip} \"sudo chmod 777 {path}\""].format(ip=ip, path=logPath), shell=True).wait()
+    subprocess.Popen(["scp {ip}:{srcFile} ./{dstFile}".format(ip=ip, srcFile=logPath, dstFile=cnt)], shell=True, stdout=fHandle).wait()
+    fHandle.close()
+
+def get_logs():
+    cnts = []
+    for cnt in containers:
+        cnts.append((cnt,)+(containers[cnt]))
+
+    pool = multiprocessing.pool.ThreadPool(containersCount)
+    pool.map(get_log, cnts)
+
 def signal_handler(sig, frame):
     print('stopping monitoring...')
     stop_monitors()
     print('stopped monitoring!')
+
     print('saving stats...')
     get_stats()
     print('stats saved!')
+
+    print('saving logs...')
+    get_logs()
+    print('logs saved!')
+
     sys.exit(0)
 
 if __name__ == "__main__":
