@@ -84,13 +84,13 @@ def get_stats():
         cnts.append((cnt,)+(containers[cnt]))
 
     pool = multiprocessing.pool.ThreadPool(containersCount)
-    pool.map(get_log, cnts)
+    pool.map(get_stat, cnts)
 
 def get_log(cnt_info):
     fHandle = open(os.devnull, "wb")
     cnt, _, ip, id, _ = cnt_info
 
-    proc = subprocess.Popen(["ssh {ip} \"docker inspect {cnt} --format {{{{.LogPath}}}}\"".format(ip=ip, cnt=id)], shell=True, stdout=subprocess.PIPE)
+    p = subprocess.Popen(["ssh {ip} \"docker inspect {cnt} --format {{{{.LogPath}}}}\"".format(ip=ip, cnt=id)], shell=True, stdout=subprocess.PIPE)
     logPath, _ = p.communicate()
     logPath = logPath.strip()
 
