@@ -63,7 +63,7 @@ def stop_monitors():
     pool = multiprocessing.pool.ThreadPool(containersCount)
     pool.map(stop_monitor, cnts)
 
-def get_log(cnt_info):
+def get_stat(cnt_info):
     fHandle = open(os.devnull, "wb")
     cnt, _, ip, id, _ = cnt_info
     subprocess.Popen(["ssh {ip} \"docker cp {cnt_id}:/go/src/github.com/hyperledger/fabric/peer/CPUProbe.csv {cnt}_CPUProbe.csv\"".format(ip=ip, cnt_id=id, cnt=cnt)], shell=True).wait()
@@ -78,7 +78,7 @@ def get_log(cnt_info):
     os.unlink("{cnt}_NetProbe.csv".format(cnt=cnt))
     fHandle.close()
 
-def get_logs():
+def get_stats():
     cnts = []
     for cnt in containers:
         cnts.append((cnt,)+(containers[cnt]))
@@ -90,9 +90,9 @@ def signal_handler(sig, frame):
     print('stopping monitoring...')
     stop_monitors()
     print('stopped monitoring!')
-    print('saving logs...')
-    get_logs()
-    print('logs saved!')
+    print('saving stats...')
+    get_stats()
+    print('stats saved!')
     sys.exit(0)
 
 if __name__ == "__main__":
