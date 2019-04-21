@@ -8,8 +8,8 @@ import multiprocessing.pool
 from getContainerInfo import getContainerInfo
 
 
-url_cpu = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/cpuProbe.py?token=ADmo4TP4hgm-DCB6EyN5GrkUxbfT5FBBks5cuM3rwA%3D%3D'
-url_net = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/netProbe.py?token=ADmo4UqbgzJc_3_BaASx0y9lHm3OBP2tks5cuM3wwA%3D%3D'
+url_cpu = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/cpuProbe.py?token=AA42RYILZPZMVNWKQQZ3AKK4YVNIO'
+url_net = 'https://raw.githubusercontent.com/CloudLargeScale-UCLouvain/nicolae_thesis/master/stats/netProbe.py?token=AA42RYNEHZ5MTTR32B7Z64K4YVNIY'
 
 containersCount = 100
 containers = None
