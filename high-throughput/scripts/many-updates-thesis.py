@@ -1,8 +1,8 @@
 import subprocess
 import random
 
-peersCount = 10
-incCount = 10
+peersCount = 100
+incCount = 100
 
 increments = []
 
