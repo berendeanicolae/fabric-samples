@@ -1,5 +1,3 @@
-#!/usr/bin/bash
-
 echo "========== Incrementing value #$3 peer$1_org$2 =========="
 export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$2.example.com/users/Admin@org$2.example.com/msp
 export CORE_PEER_ADDRESS=peer$1.org$2.example.com:7051

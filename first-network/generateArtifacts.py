@@ -507,7 +507,7 @@ done
 '''.format(peersCount=" ".join(map(str, [0]+peersCount))))
     fHandle.close()
 
-    fHandle = open("../high-throughput/scripts/init_thesis.sh", "w")
+    fHandle = open("../high-throughput/scripts/init-thesis.sh", "w")
     fHandle.write('''
 #
 # Copyright IBM Corp All Rights Reserved
