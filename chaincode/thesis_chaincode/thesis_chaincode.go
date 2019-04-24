@@ -55,3 +55,13 @@ func (s *SmartContract) increment(APIstub shim.ChaincodeStubInterface, args []st
 
     return shim.Success(nil)
 }
+
+// The main function is only relevant in unit test mode. Only included here for completeness.
+func main() {
+
+	// Create a new Smart Contract
+	err := shim.Start(new(SmartContract))
+	if err != nil {
+		fmt.Printf("Error creating new Smart Contract: %s", err)
+	}
+}
