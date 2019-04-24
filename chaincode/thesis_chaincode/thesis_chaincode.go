@@ -20,6 +20,8 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
     // Route to the appropriate handler function to interact with the ledger appropriately
     if function == "initLedger" {
         return s.initLedger(APIstub, args)
+    } else if function == "get" {
+        return s.get(APIstub, args)
     } else if function == "increment" {
         return s.increment(APIstub, args)
     } else if function == "initPeer" {
@@ -48,6 +50,22 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface, args []s
     }
 
     return shim.Success([]byte(fmt.Sprintf("Successfully initialized ledger")))
+}
+
+func (s *SmartContract) get(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+    if len(args) != 1 {
+        return shim.Error("Incorrect number of arguments, expecting 1")
+    }
+
+    value, err := APIstub.GetState("val_" + args[0])
+    if err != nil {
+        return shim.Error(fmt.Sprintf("Could not retrieve value #%s", args[0]))
+    }
+
+    value[0] += 1
+    APIstub.PutState("val_" + args[0], value)
+
+    return shim.Success([]byte(strconv.FormatInt(int64(value[0]), 10)))
 }
 
 func (s *SmartContract) increment(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
