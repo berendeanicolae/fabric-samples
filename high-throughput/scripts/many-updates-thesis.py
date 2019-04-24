@@ -14,4 +14,4 @@ random.shuffle(increments)
 
 for increment in increments:
     peer, value = increment
-    subprocess.Popen(["./increment.sh {} {} {}".format(peer, 1, value)], shell=True).wait()
+    subprocess.Popen(["./increment-thesis.sh {} {} {}".format(peer, 1, value)], shell=True).wait()
