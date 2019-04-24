@@ -1,14 +1,14 @@
 import subprocess
 import random
 
-peersCount = 10
-incCount = 10
+peersCount = 100
+incCount = 100
 
 increments = []
 
 for peer in range(peersCount):
-    for inc in range(incCount):
-        increments.append((peer, inc))
+    for value in range(valueCount):
+        increments.append((peer, value))
 
 random.shuffle(increments)
 
