@@ -621,7 +621,8 @@ def deploy():
         copytree("./../high-throughput/scripts", "/export/scripts")
         copytree("./crypto-config", "/export/crypto-config")
         copytree("./channel-artifacts", "/export/channel-artifacts")
-        copytree("./../high-throughput/chaincode", "/export/chaincode")
+        # copytree("./../high-throughput/chaincode", "/export/chaincode")
+        copytree("./../chaincode/thesis_chaincode", "/export/chaincode")
 
         subprocess.Popen(["chmod -R 777 /export"], shell=True).wait()
 
