@@ -29,6 +29,10 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
 
 
 func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+    if len(args) != 1 {
+        return shim.Error("Incorrect number of arguments, expecting 1")
+    }
+
     i := 0
     count, err := strconv.Atoi(args[0])
     if err != nil {
@@ -45,6 +49,10 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface, args []s
 }
 
 func (s *SmartContract) increment(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
+    if len(args) != 1 {
+        return shim.Error("Incorrect number of arguments, expecting 1")
+    }
+
     value, err := APIstub.GetState("val_" + args[0])
     if err != nil {
         return shim.Error(fmt.Sprintf("Could not retrieve value #%s", args[0]))
