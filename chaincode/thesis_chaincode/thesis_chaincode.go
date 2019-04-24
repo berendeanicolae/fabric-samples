@@ -22,6 +22,8 @@ func (s *SmartContract) Invoke(APIstub shim.ChaincodeStubInterface) sc.Response 
         return s.initLedger(APIstub, args)
     } else if function == "increment" {
         return s.increment(APIstub, args)
+    } else if function == "initPeer" {
+        return shim.Success([]byte(fmt.Sprintf("Successfully initialized peer")))
     }
 
     return shim.Error("Invalid Smart Contract function name.")
@@ -45,7 +47,7 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface, args []s
         i += 1
     }
 
-    return shim.Success(nil)
+    return shim.Success([]byte(fmt.Sprintf("Successfully initialized ledger")))
 }
 
 func (s *SmartContract) increment(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
@@ -61,7 +63,7 @@ func (s *SmartContract) increment(APIstub shim.ChaincodeStubInterface, args []st
     value[0] += 1
     APIstub.PutState("val_" + args[0], value)
 
-    return shim.Success(nil)
+    return shim.Success([]byte(fmt.Sprintf("Successfully incremented value %s", args[0])))
 }
 
 // The main function is only relevant in unit test mode. Only included here for completeness.
