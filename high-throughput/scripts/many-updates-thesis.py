@@ -2,7 +2,7 @@ import subprocess
 import random
 
 peersCount = 100
-incCount = 100
+valueCount = 100
 
 increments = []
 
