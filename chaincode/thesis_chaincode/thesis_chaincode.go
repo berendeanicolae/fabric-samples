@@ -44,8 +44,8 @@ func (s *SmartContract) initLedger(APIstub shim.ChaincodeStubInterface, args []s
     }
 
     for i < count {
-        bytes := []byte{0x00};
-        APIstub.PutState("val_" + strconv.Itoa(i), bytes)
+        value := "0";
+        APIstub.PutState("val_" + strconv.Itoa(i), []byte(value))
         i += 1
     }
 
@@ -62,10 +62,7 @@ func (s *SmartContract) get(APIstub shim.ChaincodeStubInterface, args []string) 
         return shim.Error(fmt.Sprintf("Could not retrieve value #%s", args[0]))
     }
 
-    value[0] += 1
-    APIstub.PutState("val_" + args[0], value)
-
-    return shim.Success([]byte(strconv.FormatInt(int64(value[0]), 10)))
+    return shim.Success(value)
 }
 
 func (s *SmartContract) increment(APIstub shim.ChaincodeStubInterface, args []string) sc.Response {
@@ -73,13 +70,14 @@ func (s *SmartContract) increment(APIstub shim.ChaincodeStubInterface, args []st
         return shim.Error("Incorrect number of arguments, expecting 1")
     }
 
-    value, err := APIstub.GetState("val_" + args[0])
+    valueBytes, err := APIstub.GetState("val_" + args[0])
     if err != nil {
         return shim.Error(fmt.Sprintf("Could not retrieve value #%s", args[0]))
     }
 
-    value[0] += 1
-    APIstub.PutState("val_" + args[0], value)
+    value, _ := strconv.ParseInt(string(valueBytes), 10, 64)
+    valueBytes = []byte(strconv.FormatInt(value+1, 10))
+    APIstub.PutState("val_" + args[0], valueBytes)
 
     return shim.Success([]byte(fmt.Sprintf("Successfully incremented value %s", args[0])))
 }
