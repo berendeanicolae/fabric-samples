@@ -429,23 +429,17 @@ peer chaincode instantiate -o orderer0.example.com:7050 --tls $CORE_PEER_TLS_ENA
 # SPDX-License-Identifier: Apache-2.0
 #
 
-init=true
 org=1
 peer=0
 declare -a peersCount=({peersCount})
 
-for (( i = 0; i < 1000; ++i ))
+for (( i = 0; i < 500000; ++i ))
 do
         export CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/users/Admin@org$org.example.com/msp
         export CORE_PEER_ADDRESS=peer$peer.org$org.example.com:7051
         export CORE_PEER_LOCALMSPID="Org"$org"MSP"
         export CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/org$org.example.com/peers/peer$peer.org$org.example.com/tls/ca.crt
-        if [ "$init" = true ]
-        then
-                peer chaincode invoke -o orderer0.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}'
-        else
-                peer chaincode invoke -o orderer0.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}'
-        fi
+        peer chaincode invoke -o orderer0.example.com:7050  --tls $CORE_PEER_TLS_ENABLED --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/example.com/orderers/orderer0.example.com/msp/tlscacerts/tlsca.example.com-cert.pem  -C $CHANNEL_NAME -n $CC_NAME -c '{{"Args":["update","'$1'","'$2'","'$3'"]}}' &
         peer=$(expr $peer + 1)
         if [ $peer -eq ${{peersCount[$org]}} ]
         then
@@ -455,7 +449,6 @@ do
         if [ $org -eq ${{#peersCount[@]}} ]
         then
                 org=1
-                init=false
         fi
 done
 '''.format(peersCount=" ".join(map(str, [0]+peersCount))))
